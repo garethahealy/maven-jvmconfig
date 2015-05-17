@@ -29,6 +29,7 @@ do
         if [[ ${key:$lastIndex:1} = [a-z]* ]]; then
             echo "(jvm opts) $key has no value and a alpha at end, maybe its a Xms or Xmx value"
 
+            #index of first number, split, first section is key, other is value
             JVM_CONFIG_ARRAY+=(["$key"]="")
         fi
     else
@@ -49,7 +50,7 @@ do
         if [[ ${key:$lastIndex:1} = [a-z]* ]]; then
             echo "(maven opts) $key has no value and a alpha at end, maybe its a Xms or Xmx value"
 
-            #index of
+            #index of first number, split, first section is key, other is value
             MAVEN_OPTS_ARRAY+=(["$key"]="")
         fi
     else
@@ -70,18 +71,26 @@ do
     valueMavenOpt=${MAVEN_OPTS_ARRAY[$key]}
     valueJvm=${JVM_CONFIG_ARRAY[$key]}
     if [[ -z "$valueJvm" ]]; then
-      echo not on config
+      echo not on config, using $valueMavenOpt
       $valueToUse=$valueMavenOpt
     else
-      echo on both
+      echo "on both, using $valueMavenOpt"
+      $valueToUse=$valueMavenOpt
+
+      echo removing $key from jvmconfig
+      unset JVM_CONFIG_ARRAY[$key]
     fi
-
-    #get the value from
-
 
     echo "$key$value"
 
    MAVEN_OPTS_FINAL+="$key$valueToUse "
+done
+
+#loop over jvmconfig, and add the rest to opts (these arnt on the maven opts, so can be added)
+for key in "${!JVM_CONFIG_ARRAY[@]}"
+do
+  value=${JVM_CONFIG_ARRAY[$key]}
+  MAVEN_OPTS_FINAL+="$key$value "
 done
 
 echo
