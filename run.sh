@@ -5,24 +5,22 @@ echo "Bash >= 4 is required"
 bash --version
 echo
 
-MAVEN_OPTS="-Xms1024m -Xmx1024m -XX:MaxPermSize=512m"
-
 # concatenates all lines of a file
 concat_lines() {
-  if [ -f "$1" ]; then
-    echo "$(tr -s '\n' ' ' < "$1")"
-  fi
+    if [ -f "$1" ]; then
+        echo "$(tr -s '\n' ' ' < "$1")"
+    fi
 }
 
-function match_index()
-{
-  local pattern=$1
-  local string=$2  
-  local result=${string/${pattern}*/}
+match_index() {
+    local pattern=$1
+    local string=$2  
+    local result=${string/${pattern}*/}
 
-  [ ${#result} = ${#string} ] || echo ${#result}
+    [ ${#result} = ${#string} ] || echo ${#result}
 }
 
+MAVEN_OPTS="-Xms1024m -Xmx1024m -XX:MaxPermSize=512m"
 JVM_CONFIG=$(concat_lines ".mvn/jvm.config")
 
 echo JVM_CONFIG=$JVM_CONFIG
