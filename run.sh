@@ -12,6 +12,15 @@ concat_lines() {
   fi
 }
 
+function match_index()
+{
+  local pattern=$1
+  local string=$2  
+  local result=${string/${pattern}*/}
+
+  [ ${#result} = ${#string} ] || echo ${#result}
+}
+
 JVM_CONFIG=$(concat_lines ".mvn/jvm.config")
 
 echo JVM_CONFIG=$JVM_CONFIG
@@ -20,41 +29,51 @@ echo
 
 #Delcare JVM_CONFIG array
 declare -A JVM_CONFIG_ARRAY
-for value in $JVM_CONFIG
+for valueOpt in $JVM_CONFIG
 do
-    IFS== read key value <<< "$value"
-    #if value is empty, and the last letter is a char (its probably a Xms or Xmx value)
+    #Split the valueOpt by space
+    IFS== read key value <<< "$valueOpt"
+    
+    #If value is empty
     if [[ -z "$value" ]]; then
+
+        #If the last letter is a char (its probably a Xms or Xmx value)
         lastIndex="$(( ${#key} - 1))"
         if [[ ${key:$lastIndex:1} = [a-z]* ]]; then
             echo "(jvm opts) $key has no value and a alpha at end, maybe its a Xms or Xmx value"
 
-            #index of first number, split, first section is key, other is value
-            JVM_CONFIG_ARRAY+=(["$key"]="")
+            indexOfNumber=$(match_index "[0-9]" $key)
+
+            #Index of first number, split, first section is key, other is value
+            JVM_CONFIG_ARRAY+=(["${key:0:$indexOfNumber}"]="${key:$indexOfNumber:${#key}}")
         fi
     else
-      JVM_CONFIG_ARRAY+=(["$key="]=$value)
+        JVM_CONFIG_ARRAY+=(["$key="]=$value)
     fi
 done
-
-echo
 
 #Delcare MAVEN_OPTS array
 declare -A MAVEN_OPTS_ARRAY
 for valueOpt in $MAVEN_OPTS
 do
+    #Split the valueOpt by space
     IFS== read key value <<< "$valueOpt"
-    #if value is empty, and the last letter is a char (its probably a Xms or Xmx value)
+
+    #If value is empty
     if [[ -z "$value" ]]; then
+
+        #If the last letter is a char (its probably a Xms512m or Xmx512m value)
         lastIndex="$(( ${#key} - 1))"
         if [[ ${key:$lastIndex:1} = [a-z]* ]]; then
             echo "(maven opts) $key has no value and a alpha at end, maybe its a Xms or Xmx value"
 
-            #index of first number, split, first section is key, other is value
-            MAVEN_OPTS_ARRAY+=(["$key"]="")
+            indexOfNumber=$(match_index "[0-9]" $key)
+
+            #Index of first number, split, first section is key, other is value
+            MAVEN_OPTS_ARRAY+=(["${key:0:$indexOfNumber}"]="${key:$indexOfNumber:${#key}}")
         fi
     else
-       MAVEN_OPTS_ARRAY+=(["$key="]=$value)
+        MAVEN_OPTS_ARRAY+=(["$key="]=$value)
     fi
 done
 
@@ -66,43 +85,23 @@ echo
 MAVEN_OPTS_FINAL=""
 for key in "${!MAVEN_OPTS_ARRAY[@]}"
 do
-    valueToUse=""
-
-    valueMavenOpt=${MAVEN_OPTS_ARRAY[$key]}
-    valueJvm=${JVM_CONFIG_ARRAY[$key]}
-    if [[ -z "$valueJvm" ]]; then
-      echo not on config, using $valueMavenOpt
-      $valueToUse=$valueMavenOpt
+    if [[ -z "${JVM_CONFIG_ARRAY[$key]}" ]]; then
+        echo $key not on config, using maveOpts ${MAVEN_OPTS_ARRAY[$key]}
+        MAVEN_OPTS_FINAL+="$key${MAVEN_OPTS_ARRAY[$key]} "
     else
-      echo "on both, using $valueMavenOpt"
-      $valueToUse=$valueMavenOpt
+        echo $key on both, using maveOpts $key${MAVEN_OPTS_ARRAY[$key]}
 
-      echo removing $key from jvmconfig
-      unset JVM_CONFIG_ARRAY[$key]
+        MAVEN_OPTS_FINAL+="$key${MAVEN_OPTS_ARRAY[$key]} "
+      
+        unset JVM_CONFIG_ARRAY[$key]
     fi
-
-    echo "$key$value"
-
-   MAVEN_OPTS_FINAL+="$key$valueToUse "
 done
 
-#loop over jvmconfig, and add the rest to opts (these arnt on the maven opts, so can be added)
+#Loop over JVM Config and add the rest to opts (these arnt on the maven opts, so can be added)
 for key in "${!JVM_CONFIG_ARRAY[@]}"
 do
-  value=${JVM_CONFIG_ARRAY[$key]}
-  MAVEN_OPTS_FINAL+="$key$value "
+    MAVEN_OPTS_FINAL+="$key${JVM_CONFIG_ARRAY[$key]} "
 done
 
 echo
 echo MAVEN_OPTS_FINAL=$MAVEN_OPTS_FINAL
-
-MAVEN_OPTS="$JVM_CONFIG $MAVEN_OPTS"
-
-echo
-echo Concat: $MAVEN_OPTS
-
-
-#split JVM_CONFIG ' ' and add to a map
-#split MAVEN_OPTS ' ' and add to a map
-
-#if it isnt on MAVEN_OPTS, use it
