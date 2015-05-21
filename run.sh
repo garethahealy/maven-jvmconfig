@@ -5,6 +5,8 @@ echo "Bash >= 4 is required"
 bash --version
 echo
 
+MAVEN_OPTS="-Xms1024m -Xmx1024m -XX:MaxPermSize=512m"
+
 # concatenates all lines of a file
 concat_lines() {
   if [ -f "$1" ]; then
