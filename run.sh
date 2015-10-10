@@ -28,28 +28,39 @@ echo MAVEN_OPTS=$MAVEN_OPTS
 echo
 
 #Delcare JVM_CONFIG array
-declare -A JVM_CONFIG_ARRAY
-for valueOpt in $JVM_CONFIG
-do
-    #Split the valueOpt by space
-    IFS== read key value <<< "$valueOpt"
-    
-    #If value is empty
-    if [[ -z "$value" ]]; then
+get_options_as_array() {
+    local -a JVM_CONFIG_ARRAY=()
 
-        #If the last letter is a char (its probably a Xms or Xmx value)
-        lastIndex="$(( ${#key} - 1))"
-        if [[ ${key:$lastIndex:1} = [a-z]* ]]; then
-            echo "(jvm opts) $key has no value and a alpha at end, maybe its a Xms or Xmx value"
+    for valueOpt in $JVM_CONFIG
+    do
+        #Split the valueOpt by space
+        IFS== read key value <<< "$valueOpt"
+        
+        #If value is empty
+        if [[ -z "$value" ]]; then
 
-            indexOfNumber=$(match_index "[0-9]" $key)
+            #If the last letter is a char (its probably a Xms or Xmx value)
+            lastIndex="$(( ${#key} - 1))"
+            if [[ ${key:$lastIndex:1} = [a-z]* ]]; then
+                indexOfNumber=$(match_index "[0-9]" $key)
 
-            #Index of first number, split, first section is key, other is value
-            JVM_CONFIG_ARRAY+=(["${key:0:$indexOfNumber}"]="${key:$indexOfNumber:${#key}}")
+                #Index of first number, split, first section is key, other is value
+                JVM_CONFIG_ARRAY+=(["${key:0:$indexOfNumber}"]="${key:$indexOfNumber:${#key}}")
+            fi
+        else
+            JVM_CONFIG_ARRAY+=(["$key="]=$value)
         fi
-    else
-        JVM_CONFIG_ARRAY+=(["$key="]=$value)
-    fi
+    done
+
+    echo ${JVM_CONFIG_ARRAY[@]}
+}
+
+declare -a JVM_CONFIG_ARRAY="$(get_options_as_array)"
+
+echo JVM_CONFIG_ARRAY=${JVM_CONFIG_ARRAY[@]}
+for key in "${!JVM_CONFIG_ARRAY[@]}"
+do
+    echo key=$key
 done
 
 #Delcare MAVEN_OPTS array
@@ -65,7 +76,7 @@ do
         #If the last letter is a char (its probably a Xms512m or Xmx512m value)
         lastIndex="$(( ${#key} - 1))"
         if [[ ${key:$lastIndex:1} = [a-z]* ]]; then
-            echo "(maven opts) $key has no value and a alpha at end, maybe its a Xms or Xmx value"
+            echo "maven opts $key has no value and a alpha at end, maybe its a Xms or Xmx value"
 
             indexOfNumber=$(match_index "[0-9]" $key)
 
@@ -92,7 +103,7 @@ do
         echo $key on both, using maveOpts $key${MAVEN_OPTS_ARRAY[$key]}
 
         MAVEN_OPTS_FINAL+="$key${MAVEN_OPTS_ARRAY[$key]} "
-      
+
         unset JVM_CONFIG_ARRAY[$key]
     fi
 done
