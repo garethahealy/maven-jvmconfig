@@ -1,0 +1,18 @@
+sudo: required
+dist: trusty
+addons:
+  apt:
+    sources:
+    - debian-sid # Grab ShellCheck from the Debian repo
+    packages:
+    - shellcheck
+language: java
+jdk:
+- oraclejdk8
+install:
+- java -version && javac -version
+- mvn -version -B
+before_script:
+- find . -type f -name "*.sh" -exec shellcheck {} \;
+script:
+- ./run.sh
