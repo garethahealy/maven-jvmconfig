@@ -10,7 +10,7 @@ language: java
 jdk:
 - oraclejdk8
 install:
-- java -version && javac -version &&mvn -version -B
+- java -version && javac -version && mvn -version -B
 before_script:
 - find . -type f -name "*.sh" -exec shellcheck {} \;
 script:
