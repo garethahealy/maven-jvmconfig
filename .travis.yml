@@ -1,11 +1,5 @@
 sudo: required
 dist: trusty
-addons:
-  apt:
-    sources:
-    - debian-sid # Grab ShellCheck from the Debian repo
-    packages:
-    - shellcheck
 language: java
 jdk:
 - oraclejdk8
